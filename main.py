@@ -19,6 +19,7 @@ class Window:
         self.printers = self.get_available_printers()
         self.choosen_printer = False
         self.choosen_folder = False
+        self.not_printed = []
 
         # Widgets
         self.choose_printer_button = tk.Button(master=self.master,
@@ -30,7 +31,8 @@ class Window:
         self.number_of_files = tk.Frame(master=self.master)
         self.files_list = tk.Listbox(self.number_of_files)
         self.submit_button = tk.Button(master=self.master,
-                                       text="Wyślij do wydruku")
+                                       text="Wyślij do wydruku",
+                                       command=self.send_to_print)
 
         # Widgets Placing
         self.choose_printer_button.place(relx=0.5, rely=0.05, anchor="n",
@@ -83,8 +85,41 @@ class Window:
             ]
 
             self.files_list.delete(0, tk.END)
+            self.submit_button.configure(text=f"Wyślij do wydruku ({len(self.pdf_files)})")
             for index, file in enumerate(self.pdf_files):
                 self.files_list.insert(tk.END, f"{index}: {file}")
+
+    def send_to_print(self):
+        if self.choosen_folder and self.choosen_printer:
+            for filename in self.pdf_files:
+                try:
+                    file_path = os.path.join(self.choosen_folder, filename)
+                    hPrinter = win32print.OpenPrinter(self.choosen_printer)
+                    hJob = win32print.StartDocPrinter(hPrinter, 1, (filename, None, "RAW"))
+                    win32print.StartPagePrinter(hPrinter)
+                    win32print.WritePrinter(hPrinter, open(file_path, 'rb').read())
+                    win32print.EndPagePrinter(hPrinter)
+                    win32print.EndDocPrinter(hPrinter)
+                    win32print.ClosePrinter(hPrinter)
+                except Exception as e:
+                    self.not_printed.append(filename)
+                    print(e)
+
+            self.files_list.delete(0, tk.END)
+            self.submit_button.configure(text=f"Wyślij do wydruku")
+            for index, file in enumerate(self.not_printed):
+                self.files_list.insert(tk.END, f"{index}: {file}")
+
+            self.choose_printer.configure(text="Wybierz drukarkę")
+            self.choosen_printer = False
+
+            self.choose_folder.configure(text="Wybierz folder")
+            self.choosen_folder = False
+        else:
+            if not self.choosen_printer:
+                messagebox.showerror("Brak danych", "Nie wybrano drukarki")
+            if not self.choosen_folder:
+                messagebox.showerror("Brak danych", "Nie wybrano folderu")
 
 
 def main():
