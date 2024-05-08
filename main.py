@@ -3,7 +3,7 @@ import subprocess
 import win32print
 import win32api
 import tkinter as tk
-from tkinter import messagebox, filedialog
+from tkinter import messagebox, filedialog, simpledialog
 
 
 class Window:
@@ -15,10 +15,13 @@ class Window:
         self.master.configure(background="#a3a3a3")
 
         self.master.bind("<Escape>", self.confirm_exit)
+        self.printers = self.get_available_printers()
+        self.choosen_printer = False
 
         # Widgets
         self.choose_printer_button = tk.Button(master=self.master,
-                                               text="Wybierz drukarkę")
+                                               text="Wybierz drukarkę",
+                                               command=self.choose_printer)
         self.choose_folder_button = tk.Button(master=self.master,
                                               text="Wybierz folder")
         self.number_of_files = tk.Label(master=self.master,
@@ -40,8 +43,31 @@ class Window:
         if messagebox.askyesno("Wyjście", "Czy na pewno chcesz wyjść z programu?"):
             self.master.destroy()
 
+    def get_available_printers(self):
+        try:
+            result = subprocess.run(["wmic", "printer", "get", "name"], capture_output=True, text=True)
+            printers = result.stdout.strip().split("\n")
+            return [printer.strip() for printer in printers[1:] if printer.strip()]
+        except Exception:
+            return []
+
+    def set_printer(self, printer):
+        self.choosen_printer = printer
+        self.choose_printer_button.configure(text=self.choosen_printer)
+        self.printer_window.destroy()
+
     def choose_printer(self):
-        pass
+        if self.printers:
+            self.printer_window = tk.Toplevel(self.master)
+            self.printer_window.title("Wybierz drukarkę")
+
+            for printer in self.printers:
+                printer_widget = tk.Button(master=self.printer_window,
+                                           text=printer,
+                                           command=lambda printer=printer: self.set_printer(printer))
+                printer_widget.pack()
+        else:
+            print("Brak drukarek")
 
 
 def main():
