@@ -23,40 +23,56 @@ def print_pdf_files(folder_path, selected_printer):
 
     print(f"W folderze znaleziono {len(pdf_files)} plików PDF")
 
-    for filename in os.listdir(folder_path):
-        file_path = os.path.join(folder_path, filename)
-        i = 1
+    not_printed = []
 
-        if filename.lower().endswith('.pdf'):
-            print(f"{i}. Drukowanie pliku {filename}")
-            try:
-                subprocess.run(["lp", "-d", selected_printer, file_path])
-                print(f"{i}. Plik został wydrukowany pomyślnie")
-                i += 1
-            except Exception as e:
-                print(f"{i}. Wystąpił błąd podczas drukowania pliku {filename}")
-                print(e)
-                i += 1
+    i = 1
+    for filename in pdf_files:
+        file_path = os.path.join(folder_path, filename)
+        print(f"{i}. Drukowanie pliku {filename}")
+        try:
+            hPrinter = win32print.OpenPrinter(selected_printer)
+            hJob = win32print.StartDocPrinter(hPrinter, 1, (filename, None, "RAW"))
+            win32print.StartPagePrinter(hPrinter)
+            win32print.WritePrinter(hPrinter, open(file_path, 'rb').read())
+            win32print.EndPagePrinter(hPrinter)
+            win32print.EndDocPrinter(hPrinter)
+            win32print.ClosePrinter(hPrinter)
+            print(f"{i}. Plik został wydrukowany pomyślnie")
+        except Exception as e:
+            print(f"{i}. Wystąpił błąd podczas drukowania pliku {filename}")
+            print(e)
+            not_printed.append(f"{i}. {filename}")
+        i += 1
+
+    return not_printed
 
 
 current_directory = os.path.dirname(os.path.realpath(__file__))
 printers = get_available_printers()
 
 
-if printers:
-    print("Dostępne drukarki:")
-    for i, printer in enumerate(printers):
-        print(f"{i + 1}. {printer}")
+if __name__ == '__main__':
+    current_directory = os.path.dirname(os.path.realpath(__file__))
+    printers = get_available_printers()
 
-    selected_printer_index = input("Wybierz numer drukarki: ")
-    try:
-        selected_printer_index = int(selected_printer_index)
-        if 1 <= selected_printer_index <= len(printers):
-            selected_printer = printers[selected_printer_index - 1]
-            print_pdf_files(current_directory, selected_printer)
-        else:
+    if printers:
+        print("Dostępne drukarki:")
+        for i, printer in enumerate(printers):
+            print(f"{i + 1}. {printer}")
+
+        selected_printer_index = input("Wybierz numer drukarki: ")
+        try:
+            selected_printer_index = int(selected_printer_index)
+            if 1 <= selected_printer_index <= len(printers):
+                selected_printer = printers[selected_printer_index - 1]
+                not_printed = print_pdf_files(current_directory, selected_printer)
+                if not_printed:
+                    print("Nie wydrukowano:\n")
+                    for file in not_printed:
+                        print(f"{file}\n")
+            else:
+                print("Podano nieprawidłowy numer drukarki.")
+        except ValueError:
             print("Podano nieprawidłowy numer drukarki.")
-    except ValueError:
-        print("Podano nieprawidłowy numer drukarki.")
-else:
-    print("Brak dostępnych drukarek.")
+    else:
+        print("Brak dostępnych drukarek.")
