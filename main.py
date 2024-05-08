@@ -37,9 +37,9 @@ def print_pdf_files(folder_path, selected_printer):
             win32print.EndPagePrinter(hPrinter)
             win32print.EndDocPrinter(hPrinter)
             win32print.ClosePrinter(hPrinter)
-            print(f"{i}. Plik został wydrukowany pomyślnie")
+            print(f"{i}. {filename} -  Wysłano do drukowania")
         except Exception as e:
-            print(f"{i}. Wystąpił błąd podczas drukowania pliku {filename}")
+            print(f"{i}. {filename} - Wystąpił błąd podczas drukowania")
             print(e)
             not_printed.append(f"{i}. {filename}")
         i += 1
