@@ -2,77 +2,131 @@ import os
 import subprocess
 import win32print
 import win32api
+import tkinter as tk
+from tkinter import messagebox, filedialog, simpledialog
 
 
-def get_available_printers():
-    try:
-        result = subprocess.run(["wmic", "printer", "get", "name"], capture_output=True, text=True)
-        printers = result.stdout.strip().split("\n")
-        return [printer.strip() for printer in printers[1:]]
-    except Exception as e:
-        print("Wystąpił błąd podczas pobierania dostępnych drukarek:", e)
-        return []
+class Window:
+    def __init__(self, master):
+        # Settings
+        self.master = master
+        self.master.title("Many PDF Print")
+        self.master.geometry("600x800")
+        self.master.configure(background="#a3a3a3")
 
+        self.master.bind("<Escape>", self.confirm_exit)
 
-def print_pdf_files(folder_path, selected_printer):
-    if not os.path.isdir(folder_path):
-        print("Podana ścieżka nie jest katalogiem")
-        return
+        self.printers = self.get_available_printers()
+        self.choosen_printer = False
+        self.choosen_folder = False
+        self.not_printed = []
 
-    pdf_files = [filename for filename in os.listdir(folder_path) if filename.lower().endswith('.pdf')]
+        # Widgets
+        self.choose_printer_button = tk.Button(master=self.master,
+                                               text="Wybierz drukarkę",
+                                               command=self.choose_printer)
+        self.choose_folder_button = tk.Button(master=self.master,
+                                              text="Wybierz folder",
+                                              command=self.choose_folder)
+        self.number_of_files = tk.Frame(master=self.master)
+        self.files_list = tk.Listbox(self.number_of_files)
+        self.submit_button = tk.Button(master=self.master,
+                                       text="Wyślij do wydruku",
+                                       command=self.send_to_print)
 
-    print(f"W folderze znaleziono {len(pdf_files)} plików PDF")
+        # Widgets Placing
+        self.choose_printer_button.place(relx=0.5, rely=0.05, anchor="n",
+                                         relwidth=0.9, relheight=0.1)
+        self.choose_folder_button.place(relx=0.5, rely=0.2, anchor="n",
+                                        relwidth=0.9, relheight=0.1)
+        self.number_of_files.place(relx=0.5, rely=0.35, anchor="n",
+                                   relwidth=0.9, relheight=0.45)
+        self.files_list.pack(fill=tk.BOTH, expand=True)
+        self.submit_button.place(relx=0.5, rely=0.85, anchor="n",
+                                 relwidth=0.9, relheight=0.1)
 
-    not_printed = []
+    def confirm_exit(self, event=None):
+        if messagebox.askyesno("Wyjście", "Czy na pewno chcesz wyjść z programu?"):
+            self.master.destroy()
 
-    i = 1
-    for filename in pdf_files:
-        file_path = os.path.join(folder_path, filename)
-        print(f"{i}. Drukowanie pliku {filename}")
+    def get_available_printers(self):
         try:
-            hPrinter = win32print.OpenPrinter(selected_printer)
-            hJob = win32print.StartDocPrinter(hPrinter, 1, (filename, None, "RAW"))
-            win32print.StartPagePrinter(hPrinter)
-            win32print.WritePrinter(hPrinter, open(file_path, 'rb').read())
-            win32print.EndPagePrinter(hPrinter)
-            win32print.EndDocPrinter(hPrinter)
-            win32print.ClosePrinter(hPrinter)
-            print(f"{i}. {filename} -  Wysłano do drukowania")
-        except Exception as e:
-            print(f"{i}. {filename} - Wystąpił błąd podczas drukowania")
-            print(e)
-            not_printed.append(f"{i}. {filename}")
-        i += 1
+            result = subprocess.run(["wmic", "printer", "get", "name"], capture_output=True, text=True)
+            printers = result.stdout.strip().split("\n")
+            return [printer.strip() for printer in printers[1:] if printer.strip()]
+        except Exception:
+            return []
 
-    return not_printed
+    def set_printer(self, printer):
+        self.choosen_printer = printer
+        self.choose_printer_button.configure(text=self.choosen_printer)
+        self.printer_window.destroy()
+
+    def choose_printer(self):
+        if self.printers:
+            self.printer_window = tk.Toplevel(self.master)
+            self.printer_window.title("Wybierz drukarkę")
+
+            for printer in self.printers:
+                printer_widget = tk.Button(master=self.printer_window,
+                                           text=printer,
+                                           command=lambda printer=printer: self.set_printer(printer))
+                printer_widget.pack()
+        else:
+            print("Brak drukarek")
+
+    def choose_folder(self):
+        self.choosen_folder = filedialog.askdirectory()
+        if self.choosen_folder:
+            self.choose_folder_button.configure(text=self.choosen_folder)
+
+            self.pdf_files = [
+                filename for filename in os.listdir(self.choosen_folder) if filename.lower().endswith('.pdf')
+            ]
+
+            self.files_list.delete(0, tk.END)
+            self.submit_button.configure(text=f"Wyślij do wydruku ({len(self.pdf_files)})")
+            for index, file in enumerate(self.pdf_files):
+                self.files_list.insert(tk.END, f"{index}: {file}")
+
+    def send_to_print(self):
+        if self.choosen_folder and self.choosen_printer:
+            for filename in self.pdf_files:
+                try:
+                    file_path = os.path.join(self.choosen_folder, filename)
+                    hPrinter = win32print.OpenPrinter(self.choosen_printer)
+                    hJob = win32print.StartDocPrinter(hPrinter, 1, (filename, None, "RAW"))
+                    win32print.StartPagePrinter(hPrinter)
+                    win32print.WritePrinter(hPrinter, open(file_path, 'rb').read())
+                    win32print.EndPagePrinter(hPrinter)
+                    win32print.EndDocPrinter(hPrinter)
+                    win32print.ClosePrinter(hPrinter)
+                except Exception as e:
+                    self.not_printed.append(filename)
+                    print(e)
+
+            self.files_list.delete(0, tk.END)
+            self.submit_button.configure(text=f"Wyślij do wydruku")
+            for index, file in enumerate(self.not_printed):
+                self.files_list.insert(tk.END, f"{index}: {file}")
+
+            self.choose_printer.configure(text="Wybierz drukarkę")
+            self.choosen_printer = False
+
+            self.choose_folder.configure(text="Wybierz folder")
+            self.choosen_folder = False
+        else:
+            if not self.choosen_printer:
+                messagebox.showerror("Brak danych", "Nie wybrano drukarki")
+            if not self.choosen_folder:
+                messagebox.showerror("Brak danych", "Nie wybrano folderu")
 
 
-current_directory = os.path.dirname(os.path.realpath(__file__))
-printers = get_available_printers()
+def main():
+    root = tk.Tk()
+    window = Window(root)
+    root.mainloop()
 
 
-if __name__ == '__main__':
-    current_directory = os.path.dirname(os.path.realpath(__file__))
-    printers = get_available_printers()
-
-    if printers:
-        print("Dostępne drukarki:")
-        for i, printer in enumerate(printers):
-            print(f"{i + 1}. {printer}")
-
-        selected_printer_index = input("Wybierz numer drukarki: ")
-        try:
-            selected_printer_index = int(selected_printer_index)
-            if 1 <= selected_printer_index <= len(printers):
-                selected_printer = printers[selected_printer_index - 1]
-                not_printed = print_pdf_files(current_directory, selected_printer)
-                if not_printed:
-                    print("Nie wydrukowano:\n")
-                    for file in not_printed:
-                        print(f"{file}\n")
-            else:
-                print("Podano nieprawidłowy numer drukarki.")
-        except ValueError:
-            print("Podano nieprawidłowy numer drukarki.")
-    else:
-        print("Brak dostępnych drukarek.")
+if __name__ == "__main__":
+    main()
