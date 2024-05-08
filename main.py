@@ -110,10 +110,10 @@ class Window:
             for index, file in enumerate(self.not_printed):
                 self.files_list.insert(tk.END, f"{index}: {file}")
 
-            self.choose_printer.configure(text="Wybierz drukarkę")
+            self.choose_printer_button.configure(text="Wybierz drukarkę")
             self.choosen_printer = False
 
-            self.choose_folder.configure(text="Wybierz folder")
+            self.choose_folder_button.configure(text="Wybierz folder")
             self.choosen_folder = False
         else:
             if not self.choosen_printer:
