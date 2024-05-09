@@ -72,19 +72,20 @@ class Window:
         self.check_printer_and_files()
 
     def choose_printer(self):
-        if self.printers:
-            self.printer_window = tk.Toplevel(self.master)
-            self.printer_window.title("Wybierz drukarkę")
+        if not hasattr(self, "printer_window") or not self.printer_window.winfo_exists():
+            if self.printers:
+                self.printer_window = tk.Toplevel(self.master)
+                self.printer_window.title("Wybierz drukarkę")
 
-            for printer in self.printers:
-                printer_widget = tk.Button(master=self.printer_window,
-                                           text=printer,
-                                           command=lambda printer=printer: self.set_printer(printer),
-                                           padx=20,
-                                           pady=20)
-                printer_widget.pack(fill=tk.BOTH, expand=True)
-        else:
-            messagebox.showerror("Brak danych", "Brak drukarek")
+                for printer in self.printers:
+                    printer_widget = tk.Button(master=self.printer_window,
+                                               text=printer,
+                                               command=lambda printer=printer: self.set_printer(printer),
+                                               padx=20,
+                                               pady=20)
+                    printer_widget.pack(fill=tk.BOTH, expand=True)
+            else:
+                messagebox.showerror("Brak danych", "Brak drukarek")
 
     def choose_files(self):
         self.choosen_files = filedialog.askopenfilenames(filetypes=self.file_types)
