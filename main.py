@@ -10,13 +10,13 @@ class Window:
     def __init__(self, master):
         # Settings
         self.master = master
-        self.master.title("Many Files Print")
+        self.master.title("Print Many Files")
         self.master.geometry("600x800")
         self.master.configure(background="#a3a3a3")
 
         self.master.bind("<Escape>", self.confirm_exit)
 
-        self.file_types = [("Dokumenty Worda", "*.doc *.docx"), ("Dokumenty PDF", "*.pdf")]
+        self.file_types = [("Dokumenty", "*.doc *.docx *.pdf")]
         self.printers = self.get_available_printers()
         self.choosen_printer = False
         self.choosen_files = []
@@ -34,7 +34,8 @@ class Window:
         self.files_list = tk.Listbox(self.master)
         self.submit_button = tk.Button(master=self.master,
                                        text="Wyślij do wydruku",
-                                       command=self.send_to_print)
+                                       command=self.send_to_print,
+                                       state="disabled")
 
         # Widgets Placing
         self.choose_printer_button.place(relx=0.5, rely=0.05, anchor="n",
@@ -50,6 +51,12 @@ class Window:
         if messagebox.askyesno("Wyjście", "Czy na pewno chcesz wyjść z programu?"):
             self.master.destroy()
 
+    def check_printer_and_files(self):
+        if self.choosen_files and self.choosen_printer:
+            self.submit_button.configure(state="normal")
+        else:
+            self.submit_button.configure(state="disabled")
+
     def get_available_printers(self):
         try:
             result = subprocess.run(["wmic", "printer", "get", "name"], capture_output=True, text=True)
@@ -62,6 +69,7 @@ class Window:
         self.choosen_printer = printer
         self.choose_printer_button.configure(text=self.choosen_printer)
         self.printer_window.destroy()
+        self.check_printer_and_files()
 
     def choose_printer(self):
         if self.printers:
@@ -96,12 +104,16 @@ class Window:
             else:
                 messagebox.showinfo("Brak danych", "Nie wybrano plików")
 
+        self.check_printer_and_files()
+
     def send_to_print(self):
         if self.choosen_files and self.choosen_printer:
             if not self.testing:
-                for filename in self.choosen_files:
+                for file in self.choosen_files:
                     try:
-                        file_path = os.path.join(self.choosen_files, filename)
+                        file_path = file
+                        filename = os.path.basename(file)
+
                         hPrinter = win32print.OpenPrinter(self.choosen_printer)
                         hJob = win32print.StartDocPrinter(hPrinter, 1, (filename, None, "RAW"))
                         win32print.StartPagePrinter(hPrinter)
@@ -110,8 +122,8 @@ class Window:
                         win32print.EndDocPrinter(hPrinter)
                         win32print.ClosePrinter(hPrinter)
                     except Exception as e:
-                        self.not_printed.append(filename)
-                        messagebox.showerror("Błąd", e)
+                        self.not_printed.append(file)
+                        print(e)
 
             messagebox.showinfo("Wynik", "Wysłano pliki do drukarki")
 
@@ -129,6 +141,8 @@ class Window:
             else:
                 self.choose_files_button.configure(text="Wybierz pliki")
                 self.choosen_files = False
+
+            self.check_printer_and_files()
         else:
             if not self.choosen_printer and not self.choosen_files:
                 messagebox.showerror("Brak danych", "Nie wybrano drukarki i plików")
