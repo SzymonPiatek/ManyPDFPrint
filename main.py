@@ -113,14 +113,19 @@ class Window:
                     try:
                         file_path = file
                         filename = os.path.basename(file)
-
                         hPrinter = win32print.OpenPrinter(self.choosen_printer)
-                        hJob = win32print.StartDocPrinter(hPrinter, 1, (filename, None, "RAW"))
-                        win32print.StartPagePrinter(hPrinter)
-                        win32print.WritePrinter(hPrinter, open(file_path, 'rb').read())
-                        win32print.EndPagePrinter(hPrinter)
-                        win32print.EndDocPrinter(hPrinter)
-                        win32print.ClosePrinter(hPrinter)
+
+                        if file.endswith('.pdf'):
+                            hJob = win32print.StartDocPrinter(hPrinter, 1, (filename, None, "RAW"))
+                            win32print.StartPagePrinter(hPrinter)
+                            win32print.WritePrinter(hPrinter, open(file_path, 'rb').read())
+                            win32print.EndPagePrinter(hPrinter)
+                            win32print.EndDocPrinter(hPrinter)
+                            win32print.ClosePrinter(hPrinter)
+                        elif file.endswith('.doc') or file.endswith('.docx'):
+                            win32print.SetDefaultPrinter(self.choosen_printer)
+                            win32api.ShellExecute(0, "print", file_path, None, ".", 0)
+
                     except Exception as e:
                         self.not_printed.append(file)
                         print(e)
