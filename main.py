@@ -11,8 +11,8 @@ class Window:
         # Settings
         self.master = master
         self.master.title("Print Many Files")
-        self.master.geometry("600x800")
-        self.master.configure(background="#a3a3a3")
+        self.master.geometry("600x800+0+0")
+        self.master.configure(background="#5c6980")
 
         self.master.bind("<Escape>", self.confirm_exit)
 
@@ -75,6 +75,7 @@ class Window:
         if not hasattr(self, "printer_window") or not self.printer_window.winfo_exists():
             if self.printers:
                 self.printer_window = tk.Toplevel(self.master)
+                self.printer_window.geometry("+0+0")
                 self.printer_window.title("Wybierz drukarkę")
 
                 for printer in self.printers:
