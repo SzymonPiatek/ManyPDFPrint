@@ -31,7 +31,7 @@ class Window:
         self.choose_files_button = tk.Button(master=self.master,
                                              text="Wybierz pliki",
                                              command=self.choose_files)
-        self.files_list = tk.Listbox(self.master)
+        self.files_list = tk.Listbox(master=self.master)
         self.submit_button = tk.Button(master=self.master,
                                        text="Wyślij do wydruku",
                                        command=self.send_to_print,
@@ -129,7 +129,7 @@ class Window:
 
                     except Exception as e:
                         self.not_printed.append(file)
-                        print(e)
+                        messagebox.showerror("Błąd", e)
 
             messagebox.showinfo("Wynik", "Wysłano pliki do drukarki")
 
