@@ -21,6 +21,8 @@ class Window:
         self.choosen_folder = False
         self.not_printed = []
 
+        self.testing = True
+
         # Widgets
         self.choose_printer_button = tk.Button(master=self.master,
                                                text="Wybierz drukarkę",
@@ -91,19 +93,20 @@ class Window:
 
     def send_to_print(self):
         if self.choosen_folder and self.choosen_printer:
-            for filename in self.pdf_files:
-                try:
-                    file_path = os.path.join(self.choosen_folder, filename)
-                    hPrinter = win32print.OpenPrinter(self.choosen_printer)
-                    hJob = win32print.StartDocPrinter(hPrinter, 1, (filename, None, "RAW"))
-                    win32print.StartPagePrinter(hPrinter)
-                    win32print.WritePrinter(hPrinter, open(file_path, 'rb').read())
-                    win32print.EndPagePrinter(hPrinter)
-                    win32print.EndDocPrinter(hPrinter)
-                    win32print.ClosePrinter(hPrinter)
-                except Exception as e:
-                    self.not_printed.append(filename)
-                    print(e)
+            if not self.testing:
+                for filename in self.pdf_files:
+                    try:
+                        file_path = os.path.join(self.choosen_folder, filename)
+                        hPrinter = win32print.OpenPrinter(self.choosen_printer)
+                        hJob = win32print.StartDocPrinter(hPrinter, 1, (filename, None, "RAW"))
+                        win32print.StartPagePrinter(hPrinter)
+                        win32print.WritePrinter(hPrinter, open(file_path, 'rb').read())
+                        win32print.EndPagePrinter(hPrinter)
+                        win32print.EndDocPrinter(hPrinter)
+                        win32print.ClosePrinter(hPrinter)
+                    except Exception as e:
+                        self.not_printed.append(filename)
+                        print(e)
 
             self.files_list.delete(0, tk.END)
             self.submit_button.configure(text=f"Wyślij do wydruku")
